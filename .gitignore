@@ -1,0 +1,34 @@
+# ── Android ──
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+app/build/
+*.apk
+*.aab
+.kotlin/
+
+# ── Web (Next.js) ──
+web/node_modules/
+web/.next/
+web/out/
+web/.vercel/
+web/*.tsbuildinfo
+web/next-env.d.ts
+
+# ── env / secrets ──
+.env
+.env.local
+web/.env
+web/.env.local
+
+# ── misc ──
+node_modules/
+npm-debug.log*
+
+.claude/

@@ -1,0 +1,10 @@
+{
+  "name": "classkey-seed",
+  "private": true,
+  "type": "module",
+  "scripts": { "seed": "node seed.mjs" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.7"
+  }
+}
