@@ -26,6 +26,10 @@ android {
         versionName = "3.0.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("SUPABASE_URL") ?: ""}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("SUPABASE_ANON_KEY") ?: ""}\"")
+        // Secure account-creation endpoint (service_role never ships in the app):
+        // either https://YOUR-PROJECT.supabase.co/functions/v1/create-user (Edge Function)
+        // or     https://your-app.vercel.app/api/admin/users            (Vercel route)
+        buildConfigField("String", "ADMIN_API_URL", "\"${localProps.getProperty("ADMIN_API_URL") ?: ""}\"")
     }
 
     buildFeatures {

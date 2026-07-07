@@ -7,10 +7,10 @@ import { Spinner } from '../ui/parts';
 
 type Role = 'student' | 'staff' | 'admin';
 
-const ROLE_META: Record<Role, { title: string; sub: string; icon: string; idLabel: string; demo: string }> = {
-  student: { title: 'Student', sub: 'Mark attendance · history · requests', icon: '🎓', idLabel: 'Register number / Email / Phone', demo: 'CS21001' },
-  staff: { title: 'Staff', sub: 'Live attendance · approvals · reports', icon: '🧑‍🏫', idLabel: 'Staff email / Phone', demo: 'staff@classkey.local' },
-  admin: { title: 'Admin', sub: 'Manage everything · campus · audit', icon: '🛡️', idLabel: 'Admin email / Phone', demo: 'admin@classkey.local' },
+const ROLE_META: Record<Role, { title: string; sub: string; icon: string; idLabel: string }> = {
+  student: { title: 'Student', sub: 'Mark attendance · history · requests', icon: '🎓', idLabel: 'Register number / Username / Email / Phone' },
+  staff: { title: 'Staff', sub: 'Live attendance · approvals · reports', icon: '🧑‍🏫', idLabel: 'Username / Email / Phone' },
+  admin: { title: 'Admin', sub: 'Manage everything · campus · audit', icon: '🛡️', idLabel: 'Username / Email / Phone' },
 };
 
 export default function LoginPage() {
@@ -28,14 +28,9 @@ export default function LoginPage() {
     try {
       let email = identifier.trim().toLowerCase();
       if (!email.includes('@')) {
-        const r = await fetch('/api/resolve-identifier', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier, role }),
-        });
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error || 'Account lookup failed.');
-        email = j.email;
+        const { data: resolved, error: rErr } = await supabase.rpc('resolve_login_email', { p_identifier: identifier.trim() });
+        if (rErr || !resolved) throw new Error(`No account found for "${identifier.trim()}".`);
+        email = resolved as string;
       }
       const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
       if (authErr) throw new Error('Wrong password or account does not exist.');
@@ -102,12 +97,6 @@ export default function LoginPage() {
           {error && <div className="error-box mt12">{error}</div>}
           <button className="btn btn-primary mt16" disabled={busy || !identifier || !password} onClick={doLogin}>
             {busy ? <Spinner /> : 'Login'}
-          </button>
-          <button
-            className="btn btn-ghost mt8"
-            onClick={() => { setIdentifier(ROLE_META[role].demo); setPassword('ChangeMe123!'); }}
-          >
-            Fill demo {role} login
           </button>
         </div>
       )}

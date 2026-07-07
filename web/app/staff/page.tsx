@@ -102,7 +102,7 @@ function Today() {
             <div className="grow">
               <div style={{ fontWeight: 600, fontSize: 14 }}>{r.students?.profiles?.full_name}</div>
               <div className="muted tiny">
-                {r.students?.register_number}
+                {r.students?.register_number} · {r.session}
                 {r.marked_at ? ' · ' + new Date(r.marked_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}
               </div>
             </div>

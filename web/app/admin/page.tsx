@@ -343,8 +343,12 @@ function Campus({ toast }: { toast: (s: string) => void }) {
         latitude: String(data?.latitude ?? ''),
         longitude: String(data?.longitude ?? ''),
         allowed_radius_meters: String(data?.allowed_radius_meters ?? 300),
+        morning_open: hhmm(data?.morning_open ?? '08:00'),
         present_until: hhmm(data?.present_until ?? '09:30'),
         late_until: hhmm(data?.late_until ?? '13:00'),
+        afternoon_open: hhmm(data?.afternoon_open ?? '13:00'),
+        afternoon_present_until: hhmm(data?.afternoon_present_until ?? '14:00'),
+        afternoon_late_until: hhmm(data?.afternoon_late_until ?? '15:30'),
         absent_after: hhmm(data?.absent_after ?? '18:00'),
         min_accuracy_meters: String(data?.min_accuracy_meters ?? 100),
       });
@@ -373,14 +377,19 @@ function Campus({ toast }: { toast: (s: string) => void }) {
       latitude: Number(f.latitude),
       longitude: Number(f.longitude),
       allowed_radius_meters: Number(f.allowed_radius_meters),
+      morning_open: f.morning_open,
       present_until: f.present_until,
       late_until: f.late_until,
+      afternoon_open: f.afternoon_open,
+      afternoon_present_until: f.afternoon_present_until,
+      afternoon_late_until: f.afternoon_late_until,
       absent_after: f.absent_after,
       min_accuracy_meters: Number(f.min_accuracy_meters),
       updated_at: new Date().toISOString(),
     };
     if (Number.isNaN(patch.latitude) || Number.isNaN(patch.longitude)) { setError('Latitude/longitude must be numbers.'); return; }
-    if (!(patch.present_until < patch.late_until)) { setError('Present-until must be before late-until.'); return; }
+    if (!(patch.morning_open < patch.present_until && patch.present_until < patch.late_until)) { setError('Morning: need open < present-until < late-until.'); return; }
+    if (!(patch.afternoon_open < patch.afternoon_present_until && patch.afternoon_present_until < patch.afternoon_late_until)) { setError('Afternoon: need open < present-until < late-until.'); return; }
     const { error: e } = cfg
       ? await supabase.from('campus_config').update(patch).eq('id', cfg.id)
       : await supabase.from('campus_config').insert(patch);
@@ -400,10 +409,18 @@ function Campus({ toast }: { toast: (s: string) => void }) {
         <Field label="Allowed radius (m)"><input className="input" value={f.allowed_radius_meters} onChange={(e) => setF({ ...f, allowed_radius_meters: e.target.value.replace(/\D/g, '') })} /></Field>
         <Field label="Min GPS accuracy (m)"><input className="input" value={f.min_accuracy_meters} onChange={(e) => setF({ ...f, min_accuracy_meters: e.target.value.replace(/\D/g, '') })} /></Field>
       </div>
+      <div className="section-title">Morning session</div>
       <div className="grid2">
-        <Field label="Present until (HH:mm)"><input className="input" value={f.present_until} onChange={(e) => setF({ ...f, present_until: e.target.value })} /></Field>
-        <Field label="Late until (HH:mm)"><input className="input" value={f.late_until} onChange={(e) => setF({ ...f, late_until: e.target.value })} /></Field>
+        <Field label="Opens (HH:mm)"><input className="input" value={f.morning_open} onChange={(e) => setF({ ...f, morning_open: e.target.value })} /></Field>
+        <Field label="Present until"><input className="input" value={f.present_until} onChange={(e) => setF({ ...f, present_until: e.target.value })} /></Field>
       </div>
+      <Field label="Late until (morning closes)"><input className="input" value={f.late_until} onChange={(e) => setF({ ...f, late_until: e.target.value })} /></Field>
+      <div className="section-title">Afternoon session</div>
+      <div className="grid2">
+        <Field label="Opens (HH:mm)"><input className="input" value={f.afternoon_open} onChange={(e) => setF({ ...f, afternoon_open: e.target.value })} /></Field>
+        <Field label="Present until"><input className="input" value={f.afternoon_present_until} onChange={(e) => setF({ ...f, afternoon_present_until: e.target.value })} /></Field>
+      </div>
+      <Field label="Late until (afternoon closes)"><input className="input" value={f.afternoon_late_until} onChange={(e) => setF({ ...f, afternoon_late_until: e.target.value })} /></Field>
       <Field label="Absent after (HH:mm) — used by auto-absent"><input className="input" value={f.absent_after} onChange={(e) => setF({ ...f, absent_after: e.target.value })} /></Field>
       <button className="btn btn-ghost mt12" disabled={busy} onClick={useMyLocation}>{busy ? <Spinner blue /> : '◎ Set to my current location'}</button>
       {error && <div className="error-box mt12">{error}</div>}

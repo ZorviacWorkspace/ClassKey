@@ -45,9 +45,10 @@ export default function Reports({ showDepartmentFilter = false }: { showDepartme
   function exportCsv() {
     downloadCSV(
       `classkey_${from}_${to}.csv`,
-      ['date', 'register_no', 'name', 'status', 'marked_at', 'method', 'reason'],
+      ['date', 'session', 'register_no', 'name', 'status', 'marked_at', 'method', 'reason'],
       filtered.map((r) => [
         r.attendance_date,
+        r.session,
         r.students?.register_number,
         r.students?.profiles?.full_name,
         statusInfo(r.status).label,
@@ -112,7 +113,7 @@ export default function Reports({ showDepartmentFilter = false }: { showDepartme
               )}
               {filtered.map((r) => (
                 <tr key={r.id}>
-                  <td>{prettyDate(r.attendance_date)}</td>
+                  <td>{prettyDate(r.attendance_date)}<div className="muted tiny">{r.session}</div></td>
                   <td>
                     <div style={{ fontWeight: 600 }}>{r.students?.profiles?.full_name}</div>
                     <div className="muted tiny">{r.students?.register_number}</div>

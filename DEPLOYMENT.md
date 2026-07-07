@@ -33,13 +33,14 @@ git push -u origin main
 2. **New project** → any name → set a **Database Password** (write it down) → pick the
    region closest to you → **Create new project**. Wait ~2 minutes.
 3. In the left sidebar click **SQL Editor** → **New query**.
-4. Open these 5 files from the `supabase/migrations/` folder **one by one, in order**.
+4. Open these 6 files from the `supabase/migrations/` folder **one by one, in order**.
    For each: copy ALL the text → paste into the editor → press **Run** → you should see "Success".
    1. `0001_schema.sql`
    2. `0002_rls.sql`
    3. `0003_functions.sql`
    4. `0004_storage.sql`
    5. `0005_realtime_and_devices.sql`
+   6. `0006_sessions_username_notifications.sql`  ← morning/afternoon sessions + username login
 5. Still in the SQL Editor, run `supabase/seed/seed_data.sql` (departments + campus row).
 
 ### Create the 3 demo users (easiest way — no coding)
@@ -123,23 +124,65 @@ Add real students/staff from **Admin → Students / Staff → + Add** (they get 
 
 ---
 
-## The Android app (optional companion)
+## The Android app (the main product)
 
-The native Android app in `app/` adds a **real fingerprint check** on top of the same
-rules and can connect to the same Supabase backend:
+The native app in `app/` is the full client: role-card login (register no / username /
+email / phone), **real fingerprint** via BiometricPrompt, native FusedLocation GPS,
+morning + afternoon sessions, forced first-login password change, **in-app account
+creation** (admin adds staff & students; staff adds students — nobody touches Supabase),
+profile photo upload, notifications, campus settings, device approvals, audit logs,
+suspicious attempts and CSV reports.
 
 1. Open `local.properties` (created by Android Studio in the project root) and add:
    ```properties
    SUPABASE_URL=https://YOUR-PROJECT.supabase.co
    SUPABASE_ANON_KEY=your-anon-public-key
+   ADMIN_API_URL=https://your-app.vercel.app/api/admin/users
    ```
+   `ADMIN_API_URL` powers in-app account creation without shipping any secret in the APK.
+   It can point at either:
+   - your **Vercel** deployment route `/api/admin/users` (works as soon as Part 3 is done), or
+   - a **Supabase Edge Function**: install the Supabase CLI, then
+     `supabase functions deploy create-user` from the repo root and use
+     `https://YOUR-PROJECT.supabase.co/functions/v1/create-user` (code in
+     `supabase/functions/create-user/`).
 2. Build & run from Android Studio (`gradlew.bat assembleDebug`,
    APK at `app/build/outputs/apk/debug/app-debug.apk`).
 
-Without those two lines the Android app runs in its offline demo mode (local SQLite).
-For day-1 deployment, the **web app is the recommended client** for students and staff.
+Without the keys the app falls back to a self-contained offline demo (local SQLite) —
+with the keys set, Supabase is the only data source.
+
+### Morning & afternoon sessions
+
+Admin → More → **Campus settings** (or web Admin → Campus) sets both windows:
+morning *opens / present-till / late-till* and the same for afternoon (24-h `HH:mm`).
+Marking inside a window records **that session**; before/after → clear "closed" message;
+present vs late is decided by the *present-till* time. `auto_mark_absentees` fills both
+sessions with Absent for anyone unmarked.
 
 ---
+
+## Final testing checklist (acceptance)
+
+Run these on real phones after deploying:
+
+1. **Admin login** (app or web) → More → Campus settings → *Set to this phone's location* → Save.
+2. **Admin adds staff**: Students tab → *Add staff/admin* → fill name/email/temp password → Create.
+3. **Admin/Staff adds student**: Students tab → **+** → fill details incl. register number → Create.
+4. **New student logs in** with the register number + temporary password → app forces a
+   **password change** → student sets their own.
+5. Student **profile photo**: Profile → camera badge → pick image → circular avatar appears.
+6. Student taps **Mark Attendance** → fingerprint prompt → GPS check → session recorded
+   (morning or afternoon automatically).
+7. Marking again in the same session → blocked as duplicate; in the other session → new record.
+8. **Staff phone/web**: Today view shows the mark (web updates live via Realtime).
+9. Student submits an **OD request** → staff **Approvals** → Approve → student's day updates
+   and the student gets a **notification**.
+10. Student logs in on a **second phone** and tries to mark → blocked, device request created →
+    Admin → Device approvals → Approve → second phone works.
+11. Admin → **Audit logs** shows every one of the above actions.
+12. Kill and reopen the app → still signed in (session persists). Turn off internet →
+    friendly error messages, no crash.
 
 ## Troubleshooting
 

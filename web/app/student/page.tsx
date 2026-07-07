@@ -44,7 +44,7 @@ export default function StudentPage() {
 
 function Home({ toast }: { toast: (s: string) => void }) {
   const [campus, setCampus] = useState<any>(null);
-  const [today, setToday] = useState<any>(null);
+  const [todayRecs, setTodayRecs] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +58,9 @@ function Home({ toast }: { toast: (s: string) => void }) {
     if (uid) {
       const { data: stu } = await supabase.from('students').select('id').eq('profile_id', uid).maybeSingle();
       if (stu) {
-        const { data: rec } = await supabase
-          .from('attendance').select('*').eq('student_id', stu.id).eq('attendance_date', todayISO()).maybeSingle();
-        setToday(rec);
+        const { data: recs } = await supabase
+          .from('attendance').select('*').eq('student_id', stu.id).eq('attendance_date', todayISO());
+        setTodayRecs(recs ?? []);
       }
     }
     setLoaded(true);
@@ -99,28 +99,39 @@ function Home({ toast }: { toast: (s: string) => void }) {
 
   if (!loaded) return <Loading />;
 
+  const morning = todayRecs.find((r) => r.session === 'morning');
+  const afternoon = todayRecs.find((r) => r.session === 'afternoon');
+  const bothDone = morning && afternoon;
+
   return (
     <>
       <div className="hero mt12">
-        <div className="small" style={{ opacity: 0.85 }}>Today&apos;s entry attendance</div>
+        <div className="small" style={{ opacity: 0.85 }}>Today&apos;s attendance</div>
         <div style={{ fontSize: 20, fontWeight: 800 }}>
           {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
         </div>
         <div className="small mt8" style={{ opacity: 0.9 }}>
-          {today
-            ? `Marked ${statusInfo(today.status).label}${today.marked_at ? ' · ' + new Date(today.marked_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}`
-            : campus
-              ? `Present till ${hhmm(campus.present_until)} · Late till ${hhmm(campus.late_until)}`
-              : 'Campus not configured yet'}
+          {campus
+            ? `Morning ${hhmm(campus.morning_open)}–${hhmm(campus.late_until)} · Afternoon ${hhmm(campus.afternoon_open)}–${hhmm(campus.afternoon_late_until)}`
+            : 'Campus not configured yet'}
         </div>
       </div>
 
+      <div className="row gap8 mt12">
+        {[{ label: 'Morning', rec: morning }, { label: 'Afternoon', rec: afternoon }].map(({ label, rec }) => (
+          <div className="stat" key={label}>
+            <div className="l">{label}</div>
+            <div className="mt8">{rec ? <Chip status={rec.status} /> : <Chip status="not_marked" />}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="card mt12">
-        {today ? (
+        {bothDone ? (
           <div className="row gap14">
             <div className="fp" style={{ width: 52, height: 52, fontSize: 24, background: 'var(--soft-green)', color: 'var(--success)' }}>✓</div>
             <div>
-              <div className="h2">You&apos;re {statusInfo(today.status).label} today</div>
+              <div className="h2">Both sessions recorded</div>
               <div className="muted small">Synced to the college database — staff can see it live.</div>
             </div>
           </div>
@@ -129,7 +140,8 @@ function Home({ toast }: { toast: (s: string) => void }) {
             <div className="h2 mb8">Mark attendance</div>
             <div className="muted small mb12">
               Your live location is verified on the server against the campus geofence
-              {campus ? ` (${campus.allowed_radius_meters} m radius)` : ''}. One record per day.
+              {campus ? ` (${campus.allowed_radius_meters} m radius)` : ''}. The server picks the
+              current session automatically.
             </div>
             {error && <div className="error-box mb12">{error}</div>}
             <button className="btn btn-primary" disabled={busy} onClick={mark}>
@@ -178,7 +190,7 @@ function History() {
         {rows.map((r) => (
           <div className="list-row" key={r.id}>
             <div className="grow">
-              <div style={{ fontWeight: 600 }}>{prettyDate(r.attendance_date)}</div>
+              <div style={{ fontWeight: 600 }}>{prettyDate(r.attendance_date)} · {r.session}</div>
               <div className="muted tiny">{r.verification_method}{r.manual_reason ? ` · ${r.manual_reason}` : ''}</div>
             </div>
             <Chip status={r.status} />
